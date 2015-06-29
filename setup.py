@@ -15,6 +15,6 @@ setup(name='citytour',
       author_email='b.debanjan@gmail.com',
       license='MIT',
       packages=['citytour'],
-      install_requires=[], # add your requirements here
+      install_requires=['numpy'], # add your requirements here
       zip_safe=False
       )

@@ -1,6 +1,14 @@
 class CityMap:
     def __init__(self):
         self.edges = {}
+        self.distances = {}
+        self.waittimes = {}
     
-    def neighbors(self, id):
-        return self.edges[id]
+    def getConnectedNodes(self, node):
+        return self.edges[node]
+    
+    def getEdgeDistance(self, edge):
+        return self.distances[edge]
+    
+    def getContraint(self,node):
+        return self.waittimes[node]

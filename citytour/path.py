@@ -27,7 +27,7 @@ def findQuickestPath(map, start,end):
     end -- {single character-like, end nextNode}
     
     Returns :
-    path : {array-like, quickest path between start and end}    
+    path,time : {tuple-like, (quickest path between start and end,time taken)}    
     """
     # check arguments
     if(not isinstance(map,CityMap)):

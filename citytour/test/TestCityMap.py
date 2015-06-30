@@ -21,11 +21,8 @@ class Test(unittest.TestCase):
         with self.assertRaises(ValueError):
             map.setAvgSpeed('')
 
-        map.setAvgSpeed(0)
-        self.assertEqual(map.getAvgSpeed(), 0)
-
-        map.setAvgSpeed('0')
-        self.assertEqual(map.getAvgSpeed(), 0)
+        with self.assertRaises(ValueError):
+            map.setAvgSpeed(0)
 
         map.setAvgSpeed('60.0')
         self.assertEqual(map.getAvgSpeed(), 60.0)
@@ -54,7 +51,7 @@ class Test(unittest.TestCase):
         
         map.setDistances('A:1,2,3;B:1,3')
         
-        self.assertTrue(map.getEdgeDistance('A','E'), 3)
+        self.assertTrue(map.getEdgeTime('A','E'), 3)
         
 
     def test_setWaitTimes(self):
@@ -116,19 +113,19 @@ class Test(unittest.TestCase):
             map.setXWaitingList('A','B,C',2,3,0,1)
 
         map.setEdges('A:B,C;B:C,D')
-        map.setXWaitingList('A,B','C,D',2,3,0,1)
+        map.setXWaitingList('A,B','C,D',0,3,2,1)
         
         self.assertEqual(map.X_left_right, ['A','B'])
         
         self.assertEqual(map.X_top_bottom, ['C','D'])
         
-        self.assertEqual(map.waitingLeftRight, 5)
+        self.assertEqual(map.waitingLeftRight, 3)
         
-        self.assertEqual(map.waitingTopBottom, 1)
+        self.assertEqual(map.waitingTopBottom, 3)
         
-        self.assertEqual(map.XWait('A'),120)
+        self.assertEqual(map.getXWait('D'),100)
         
-        self.assertEqual(map.XWait('C'),50)
+        self.assertEqual(map.getXWait('C'),100)
     
     def test_algo(self):
         

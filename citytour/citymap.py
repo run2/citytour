@@ -2,6 +2,88 @@ from sets import Set
 import logging
 import math
 
+"""A class to hold a city map with the following assumption
+
+1) There can be n number of nodes/(traffic lights)
+
+2) If there is a connection between two nodes, that is called an edge
+
+3) Each edge has a length l in KM. This l parameter per edge is configurable
+
+4) There is a special node/light called X
+
+5) All nodes, have a constraint s.t a vehicle reaching that node/light
+will have to wait for t_n seconds before it can go. This t_n second parameter
+or "waittime" per node is configurable. Think about it as cost of overcoming
+congestion just before the light. This is fixed value per node.
+
+All nodes except X, does not have a light per say. Imagine these nodes are 4-way
+over bridges where the cars can move out of the node as long as they have crossed
+the t_n congestion minutes.
+
+6) X is a node/light which allows traffic from ONLY two ways. Left-right-left, and top-bottom-top.
+It has a traffic light which flips on and off between both these sides. Each side gets 30 seconds
+time. Only one car can move through the light at a time. And each car needs 10 seconds to move
+through the intersection. Imagine that X is a cross bridge. The bridge takes 10 minutes to cross
+and it wide enough to allow only 1 vehicle at a time.
+
+7) There is a control room, which has the real time information about the number of cars waiting
+to cross X in both directions.
+
+8) A car driver can call this control room from any light/node in the city and ask for fastest
+route to any other light/node in the city.
+
+9) Say the driver calls control room at time t1 to get directions from N1 to N2. Say the number of 
+cars waiting to cross X left-right-left at time t1 is C1 and similarly for top-bottom-top is C2. 
+The control room needs to give the fastest route between N1 and N2. To do so, it assumes the 
+following worst case situation at X
+
+a) For all routes which go through X, it assumes that in worst case, when the routed car reaches X,
+it will be the same C1 and C2 number of cars waiting to cross left-right-left and top-bottom-top directions respectively.
+
+b) It also assumes that after the routed car has got over its initial congestion (Wait Time) at X, the light
+will first turn green on the opposite direction compared to the one in the route
+
+Example:
+                         C
+                         |
+    Say X has 4 edges. A-X-B
+                         |
+                         D
+    A and B is on left-X-right
+    C and D is on top-X-bottom
+    
+    Suppose at time t1, there are 3 cars waiting in A-X-B/B-X-A direction and 3 cars waiting in C-X-D/D-X-C direction
+    Suppose the route being evaluated will have the routed car approach X (from any of A C or B) and then go towards D.
+    Worst case, when it is ready to cross X, the left-right-left light will turn green first. 
+    
+    So the wait time at X will be the following
+    (congestion time e.g 30 seconds) + 
+    (30 seconds for 3 cars to go in A-X-B/B-X-A direction) + 
+    (30 seconds for 3 cars to go in C-X-D/D-X-C) + 
+    (30 seconds no car goes in A-X-B/B-X-A direction) + 
+    10 seconds for the routed car to go
+    = 30 + 30 + 30 + 30 + 10 = 130 seconds
+
+9) The routed car has a default avg running speed of 60 KMPH. It is configurable.
+
+10) The number of cars waiting on opposite directions at X is configurable
+
+11) The nodes towards left, right, top and bottom of X is configurable
+
+Attributes:
+    edges (dict): Edge information for each node. E.g 'A:B,C,D;B:X,C,F'. The nodes are separated by ; edges are separated from source by : and each edge is separated by ,
+    distances (dict): Distance information for each edge. E.g 'A:10,2,4;B:5,7,9'. The nodes are separated by ; distances are separated from source by : and the each edge distance is separated by , 
+    waitTimes (dict): Wait/Congestion time at each Node. E.g 'A:30;B:30'. The nodes are separated by ; and the source and time is separated by :
+    nodes (set): Interally maintained set of all nodes in the city (populated while reading the edge information)
+    avgSpeed (float): avg speed as floating point in kmph
+    X_left_right (list) : list of two nodes left and right of X
+    X_top_bottom (list) : list of two nodes top and bottom of X
+    waitingLeftRight (int) : no of cars waiting at X to go left-right-left direction
+    waitingTopBottom (int) : no of cars waiting at X to go top-bottom-top direction
+
+"""
+
 class CityMap:
     def __init__(self):
         self.edges = {}
@@ -21,6 +103,9 @@ class CityMap:
            self.avgSpeed = float(speed)
         except ValueError:
             raise ValueError('Speed needs to be floating point')
+       
+        if(self.avgSpeed <=0.0 ):
+           raise ValueError('Speed cannot be less or equal to zero')
     
     
     def setXWaitingList(self,left_right,top_bottom,leftWait,rightWait,topWait,bottomWait):
@@ -51,17 +136,6 @@ class CityMap:
         except:
             raise ValueError('Invalid values for waiting number of cars')
     
-    def XWait(self,nextNode):
-        initialWait = 0
-        waitOppSignal = 30
-        selfTime = 10
-        if nextNode in self.X_left_right:
-            wait = initialWait + math.ceil(self.waitingLeftRight/3)*60 + waitOppSignal + (self.waitingLeftRight%3)*10 + selfTime
-        else:
-            wait = initialWait + math.ceil(self.waitingTopBottom/3)*60 + waitOppSignal + (self.waitingTopBottom%3)*10 + selfTime
-            
-        return wait
-
     def setEdges(self,valueString):
         edges = {}
         
@@ -80,6 +154,9 @@ class CityMap:
             destinations = node.split(':') [1]
             if (source == '' or destinations == ''):
                 raise ValueError('Invalid source and destinations for node %r ' %node)
+            
+            if(source=='X' and len(destinations.split(',')) <> 4 ):
+                raise ValueError('The node X needs to have 4 and only 4 edges' )
             
             edges[source] = destinations.split(',')
             self.nodes.add(source)
@@ -156,6 +233,21 @@ class CityMap:
         
     def contains(self,node):
         return node in self.nodes
+
+    def getXWait(self,nextNode):
+        #initialWait = 0
+        oneLightCycleTime = 60
+        oneCarTime = 10
+        noOfCarsMovingInOneGreen = 3
+
+        waitingCarsInSameDirection = self.waitingLeftRight if nextNode in self.X_left_right else self.waitingTopBottom 
+                
+        # opposite side signal green time + 
+        # n number of green/red cycles where n is the number of full green signals needed in same direction + 
+        # remaining cars to move in same direction partially within a green signal
+        # time for this routed car to move
+        wait = oneLightCycleTime/2 + math.ceil(waitingCarsInSameDirection/noOfCarsMovingInOneGreen)*(oneLightCycleTime) + (waitingCarsInSameDirection % noOfCarsMovingInOneGreen)*oneCarTime + oneCarTime
+        return wait
     
     def getConnectedNodes(self, node):
         return self.edges[node]
@@ -163,7 +255,7 @@ class CityMap:
     def getAvgSpeed(self):
         return self.avgSpeed
     
-    def getEdgeDistance(self, start, end):
+    def getEdgeTime(self, start, end):
         # distances are in km
         # converting into seconds @ 60 kmph
         return float(self.distances[start+'-'+end])*self.avgSpeed
@@ -172,5 +264,5 @@ class CityMap:
         if(None == parentNode or (None != parentNode and parentNode <> 'X' ) ):
             return float(self.waitTimes[nextNode])
         else:
-            return float(self.XWait(nextNode)) + float(self.waitTimes[nextNode])
+            return float(self.getXWait(nextNode)) + float(self.waitTimes[nextNode])
         

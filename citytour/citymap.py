@@ -228,7 +228,7 @@ class CityMap:
                 raise ValueError('Speed needs to be floating point at %r ' %currentNode)
             
         
-        logging.info('Wait times initialized as ' + str(waitTimes))
+        logging.debug('Wait times initialized as ' + str(waitTimes))
         self.waitTimes = waitTimes
         
     def contains(self,node):

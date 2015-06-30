@@ -16,6 +16,7 @@ def findQuickestPath(map, start,end):
     The algorithm takes care of this wait constraint along with the edge distances,
     while evaluating the quickest route between two nodes. 
     
+    Using Dijkstra's algorithm (https://en.wikipedia.org/wiki/Dijkstra's_algorithm)
     
     Keyword arguments:
     map -- {citymap.CityMap-like, graph}
@@ -42,10 +43,10 @@ def findQuickestPath(map, start,end):
     #visitedQueue.append(start)
     visitedQueue = []
     # Push the first item into heap
-    heapq.heappush(visitedQueue, (start,0))
+    heapq.heappush(visitedQueue, (0,start))
     
     while not len(visitedQueue) == 0:
-        currentNode = heapq.heappop(visitedQueue)[0]
+        currentNode = heapq.heappop(visitedQueue)[1]
 
         if currentNode == end:
             logging.debug('Goal %r found - breaking out' %currentNode)
@@ -57,14 +58,17 @@ def findQuickestPath(map, start,end):
         
         for nextNode in connectedNodes:
             
-            time_to_be = time_till_now[currentNode] + map.getEdgeDistance(currentNode, nextNode) + map.getWaitTime(nextNode)
+            if nextNode == previous_node[currentNode]:
+                continue
+            
+            time_to_be = time_till_now[currentNode] + map.getEdgeDistance(currentNode, nextNode) + map.getWaitTime(currentNode,nextNode)
             
             if nextNode not in time_till_now or time_to_be < time_till_now[nextNode]:
                 time_till_now[nextNode] = time_to_be
                 previous_node[nextNode] = currentNode
 
                 priority = time_to_be
-                heapq.heappush(visitedQueue,(nextNode,priority))
+                heapq.heappush(visitedQueue,(priority,nextNode))
 
     # Now Recontruct the path
     nextNode = end
@@ -74,6 +78,5 @@ def findQuickestPath(map, start,end):
         nextNode = previous_node[nextNode]
         path.append(nextNode)
         
-    
     path.reverse()        
-    return path
+    return path,time_till_now[end]

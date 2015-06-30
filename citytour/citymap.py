@@ -1,5 +1,6 @@
 from sets import Set
 import logging
+import math
 
 class CityMap:
     def __init__(self):
@@ -9,6 +10,11 @@ class CityMap:
         self.nodes = Set()
         
         self.avgSpeed = 60.0 # kmph
+        self.X_left_right = []
+        self.X_top_bottom = []
+        self.waitingLeftRight = 0
+        self.waitingTopBottom = 0
+        
         
     def setAvgSpeed(self,speed):
         try:
@@ -16,6 +22,46 @@ class CityMap:
         except ValueError:
             raise ValueError('Speed needs to be floating point')
     
+    
+    def setXWaitingList(self,left_right,top_bottom,leftWait,rightWait,topWait,bottomWait):
+        
+        if(len(left_right.split(','))!=2):
+            raise ValueError('Invalid left right nodes')
+        else:
+            [left,right]=left_right.split(',')
+        
+        if(len(top_bottom.split(','))!=2):
+            raise ValueError('Invalid top bottom nodes')
+        else:
+            [top,bottom]=top_bottom.split(',')
+        
+        if(not left in self.nodes or not right in self.nodes or not top in self.nodes or not bottom in self.nodes):
+            raise ValueError('One or more of left,top,right,bottom not present in map %r %r %r %r' %(left,top,right,bottom))
+        
+        self.X_left_right.append(left)
+        self.X_left_right.append(right)
+        self.X_top_bottom.append(top)
+        self.X_top_bottom.append(bottom)
+        
+        try:
+            self.waitingLeftRight += int(leftWait)
+            self.waitingLeftRight += int(rightWait)
+            self.waitingTopBottom += int(topWait)
+            self.waitingTopBottom += int(bottomWait)
+        except:
+            raise ValueError('Invalid values for waiting number of cars')
+    
+    def XWait(self,nextNode):
+        initialWait = 0
+        waitOppSignal = 30
+        selfTime = 10
+        if nextNode in self.X_left_right:
+            wait = initialWait + math.ceil(self.waitingLeftRight/3)*60 + waitOppSignal + (self.waitingLeftRight%3)*10 + selfTime
+        else:
+            wait = initialWait + math.ceil(self.waitingTopBottom/3)*60 + waitOppSignal + (self.waitingTopBottom%3)*10 + selfTime
+            
+        return wait
+
     def setEdges(self,valueString):
         edges = {}
         
@@ -122,5 +168,9 @@ class CityMap:
         # converting into seconds @ 60 kmph
         return float(self.distances[start+'-'+end])*self.avgSpeed
     
-    def getWaitTime(self,node):
-        return float(self.waitTimes[node])
+    def getWaitTime(self,parentNode,nextNode):
+        if(None == parentNode or (None != parentNode and parentNode <> 'X' ) ):
+            return float(self.waitTimes[nextNode])
+        else:
+            return float(self.XWait(nextNode)) + float(self.waitTimes[nextNode])
+        

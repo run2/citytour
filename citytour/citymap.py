@@ -110,6 +110,9 @@ class CityMap:
     
     def setXWaitingList(self,left_right,top_bottom,leftWait,rightWait,topWait,bottomWait):
         
+        if (not 'X' in self.edges or len(self.edges['X'])!= 4):
+            raise ValueError('Set edges of map first including edges of X correctly (must have 4 edges)')
+        
         if(len(left_right.split(','))!=2):
             raise ValueError('Invalid left right nodes')
         else:
@@ -119,9 +122,21 @@ class CityMap:
             raise ValueError('Invalid top bottom nodes')
         else:
             [top,bottom]=top_bottom.split(',')
+
+        checkXNeighbours = Set()
+        checkXNeighbours.add(left)
+        checkXNeighbours.add(right)
+        checkXNeighbours.add(top)
+        checkXNeighbours.add(bottom)
+        
+        if(len(checkXNeighbours)!=4):
+            raise ValueError('One or more of left,top,right,bottom of X is same. This is not possible - please check config ')
         
         if(not left in self.nodes or not right in self.nodes or not top in self.nodes or not bottom in self.nodes):
             raise ValueError('One or more of left,top,right,bottom not present in map %r %r %r %r' %(left,top,right,bottom))
+
+        if(not left in self.edges['X'] or not right in self.edges['X'] or not top in self.edges['X'] or not bottom in self.edges['X']):
+            raise ValueError('One or more of left,top,right,bottom not present as edges of X %r ' %str(self.edges['X']))
         
         self.X_left_right.append(left)
         self.X_left_right.append(right)

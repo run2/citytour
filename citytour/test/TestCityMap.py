@@ -113,6 +113,21 @@ class Test(unittest.TestCase):
             map.setXWaitingList('A','B,C',2,3,0,1)
 
         map.setEdges('A:B,C;B:C,D')
+
+        with self.assertRaises(ValueError):
+            map.setXWaitingList('A,B','C,D',0,3,2,1)
+
+        with self.assertRaises(ValueError):
+            map.setEdges('A:B,C;B:C,D;X:A,B,C')
+
+        map.setEdges('A:B,C;B:C,D;X:A,B,C,D')
+
+        with self.assertRaises(ValueError):
+            map.setXWaitingList('D,B','C,D',0,3,2,1)
+
+        with self.assertRaises(ValueError):
+            map.setXWaitingList('D,D','C,A',0,3,2,1)
+
         map.setXWaitingList('A,B','C,D',0,3,2,1)
         
         self.assertEqual(map.X_left_right, ['A','B'])
@@ -126,6 +141,8 @@ class Test(unittest.TestCase):
         self.assertEqual(map.getXWait('D'),100)
         
         self.assertEqual(map.getXWait('C'),100)
+
+        self.assertEqual(map.getXWait('A'),100)
     
     def test_algo(self):
         
